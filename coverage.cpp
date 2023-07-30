@@ -11,8 +11,6 @@ void calculate_set(unsigned char* input, int len, int* range)
     unsigned char *output = new unsigned char[len];
     int resno;      //result number
 
-    // for(int i = 0; i < len; i++)
-    //     output[i] = input[i];
     input[len-2] &= 0xf0;
     input[len-1] &= 0x00;
     // compare with 0x00 0x00 0x00 ({0}^12)
@@ -21,24 +19,26 @@ void calculate_set(unsigned char* input, int len, int* range)
         if(i < 256)
             input[len-1] = char(i);
         else{
-            input[len-1] = char(i-256);    //0x00 -> 0xff
-            input[len-2] = char(240+i/256);    //to jest ŹLE!!!
+            input[len-1] = char(i%256);    //0x00 -> 0xff
+            input[len-2] &= 0xf0;           //f0 ->ff
+            input[len-2] ^= char(i/256);
         }
-
-        cout<<i<<'\t'<<int(input[len-2])<<'\t'<<int(input[len-1])<<endl;
 
         //algorytm enckrypcji
 
-        if(i < 256)
-            resno = ((int)output[len-1]);
-        else
-            resno = ((int)output[len-2] * 256 + (int)output[len-1]);
+        output[len-2] &= 0x0f; 
+        resno = ((int)output[len-2] * 256 + (int)input[len-1]);
 
-
-        if(i==300)
-            break;
-        
-
+        if(resno < 2572)
+            range[0]++;
+        else if(resno < 2584)
+            range[1]++;
+        else if(resno < 2594)
+            range[2]++;
+        else if(resno < 2606)
+            range[3]++;
+        else 
+            range[4]++;
     }
 
     delete[] output;
