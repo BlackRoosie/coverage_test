@@ -36,12 +36,14 @@ void randomBytes(unsigned char* bytes, int n) {
 	}
 }
 
-void calculate_set(unsigned char* key, unsigned char* input, int len, int* range)
+void calculate_set(unsigned char* input, int len, int* range)
 {
     unsigned char *output = new unsigned char[len];
-    // unsigned char key[KEYBYTES];
+    unsigned char key[KEYBYTES];
     unsigned char nonce[NONCEBYTES];
     int resno;      //result number
+
+    randomBytes(key, KEYBYTES);
 
     input[len-2] &= 0xf0;
     input[len-1] &= 0x00;
@@ -56,7 +58,6 @@ void calculate_set(unsigned char* key, unsigned char* input, int len, int* range
             input[len-2] ^= char(i/256);
         }
 
-        // randomBytes(key, KEYBYTES);
         randomBytes(nonce, NONCEBYTES);
 
         //encryption algorithm e.g. encryption(key, nonce, ad, adlen, input, msglen, output, tag);
@@ -86,7 +87,7 @@ void calculate_set(unsigned char* key, unsigned char* input, int len, int* range
     delete[] output;
 }
 
-float coverage_test(unsigned char* key, unsigned char* ad, int adlen, unsigned char* tag) {
+float coverage_test(unsigned char* ad, int adlen, unsigned char* tag) {
 
     uint8_t input[BYTES];
     int range[5] = {0, 0, 0, 0, 0};
@@ -95,7 +96,7 @@ float coverage_test(unsigned char* key, unsigned char* ad, int adlen, unsigned c
 
     for(int i = 0; i < SETSIZE; i++){
         randomBytes(input, BYTES);
-        calculate_set(key, input, BYTES, range);
+        calculate_set(input, BYTES, range);
         
         for(int j = 0; j < 5; j++){
             probabilities[i] += powf(range[j] - expected[j], 2) / expected[j];
@@ -111,25 +112,19 @@ float coverage_test(unsigned char* key, unsigned char* ad, int adlen, unsigned c
     return pValue;
 }
 
-// int main(){
-//     unsigned char plaintext[8] = {'c', 'o', 'v', 'e', 'r', 'a', 'g', 'e'};
-//     int ptlen = sizeof(plaintext);
-//     // int range[5] = {0, 0, 0, 0, 0};
+int main(){
+    unsigned char plaintext[8] = {'c', 'o', 'v', 'e', 'r', 'a', 'g', 'e'};
+    int ptlen = sizeof(plaintext);
 
-//     // calculate_set(plaintext, ptlen, range);
+    unsigned char ad[8] = { 'E', 'L', 'E', 'P', 'H', 'A', 'N', 'T' };
+	int adlen = sizeof(ad);
 
-//     unsigned char key[KEYBYTES];
-// 	randomBytes(key, KEYBYTES);
+    unsigned char tagEncryption[8] = { 0 };
 
-//     unsigned char ad[8] = { 'E', 'L', 'E', 'P', 'H', 'A', 'N', 'T' };
-// 	int adlen = sizeof(ad);
-
-//     unsigned char tagEncryption[8] = { 0 };
-
-//     float pValue = coverage_test(key, ad, adlen, tagEncryption);
-//     cout << fixed << setprecision(5) << "final P value: " << pValue << endl;
+    float pValue = coverage_test(ad, adlen, tagEncryption);
+    cout << fixed << setprecision(5) << "final P value: " << pValue << endl;
     
 
 
-//     return 0;
-// }
+    return 0;
+}
