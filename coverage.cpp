@@ -1,11 +1,24 @@
+/*
+download https://vcpkg.io/en/getting-started
+and install boost-math using it
+
+compile using command:
+g++ coverage.cpp -o coverage -I <path to boost>"
+e.g.
+g++ coverage.cpp -o coverage -I "C:/dev/vcpkg/installed/x64-windows/include"
+*/
+
 #include <iostream>
 #include <bitset>
 #include <cstdio>
 #include <math.h>
+#include <boost/math/distributions/chi_squared.hpp>
 
 const int REPEATROUNDS = 4096;    //2^12
 const int SETSIZE = 4096;
 const int BYTES = 8;
+const int DF = 4;       //degrees of freedom
+int expected[5] = { 816, 839, 810, 832, 799 };
 
 //sould be already in algortihm
 const int KEYBYTES = 16;
@@ -15,7 +28,7 @@ using namespace std;
 
 void randomBytes(unsigned char* bytes, int n) {
 
-    int temp;
+	int temp;
 	for (int i = 0; i < n; i++)
 	{
 		temp = rand();
@@ -23,10 +36,10 @@ void randomBytes(unsigned char* bytes, int n) {
 	}
 }
 
-void calculate_set(unsigned char* input, int len, int* range)
+void calculate_set(unsigned char* key, unsigned char* input, int len, int* range)
 {
     unsigned char *output = new unsigned char[len];
-    unsigned char key[KEYBYTES];
+    // unsigned char key[KEYBYTES];
     unsigned char nonce[NONCEBYTES];
     int resno;      //result number
 
@@ -43,10 +56,10 @@ void calculate_set(unsigned char* input, int len, int* range)
             input[len-2] ^= char(i/256);
         }
 
-        randomBytes(key, KEYBYTES);
+        // randomBytes(key, KEYBYTES);
         randomBytes(nonce, NONCEBYTES);
 
-        //algorytm enckrypcji
+        //encryption algorithm e.g. encryption(key, nonce, ad, adlen, input, msglen, output, tag);
 
         output[len-2] &= 0x0f; 
         resno = ((int)output[len-2] * 256 + (int)output[len-1]);
@@ -63,30 +76,39 @@ void calculate_set(unsigned char* input, int len, int* range)
             range[4]++;
     }
 
+    //for this set pValue = 0,27623 
+    // range[0] = 787;
+    // range[1] = 861;
+    // range[2] = 772;
+    // range[3] = 841;
+    // range[4] = 835;
+
     delete[] output;
 }
 
-float coverage_test(){
+float coverage_test(unsigned char* key, unsigned char* ad, int adlen, unsigned char* tag) {
 
     uint8_t input[BYTES];
     int range[5] = {0, 0, 0, 0, 0};
-    float expected[5] = {0.199176f, 0.204681f, 0.197862f, 0.203232f, 0.195049f};
     float probabilities[REPEATROUNDS] = {0};
-    float pValue = 0.0;
+    float pValue, chi = 0.0f;
 
-    for(int i = 0; i < REPEATROUNDS; i++){
+    for(int i = 0; i < SETSIZE; i++){
         randomBytes(input, BYTES);
-        calculate_set(input, BYTES, range);
+        calculate_set(key, input, BYTES, range);
         
         for(int j = 0; j < 5; j++){
-            probabilities[i] += powf(range[j]/SETSIZE - expected[j], 2) / expected[j];
+            probabilities[i] += powf(range[j] - expected[j], 2) / expected[j];
             range[j] = 0;
         }
 
-        pValue += probabilities[i];
+        chi += probabilities[i];
     }
 
-    return pValue /= REPEATROUNDS;
+    chi /= SETSIZE;
+    pValue = boost::math::cdf(complement(boost::math::chi_squared_distribution<float>(DF), chi));
+
+    return pValue;
 }
 
 // int main(){
@@ -96,7 +118,16 @@ float coverage_test(){
 
 //     // calculate_set(plaintext, ptlen, range);
 
+//     unsigned char key[KEYBYTES];
+// 	randomBytes(key, KEYBYTES);
 
+//     unsigned char ad[8] = { 'E', 'L', 'E', 'P', 'H', 'A', 'N', 'T' };
+// 	int adlen = sizeof(ad);
+
+//     unsigned char tagEncryption[8] = { 0 };
+
+//     float pValue = coverage_test(key, ad, adlen, tagEncryption);
+//     cout << fixed << setprecision(5) << "final P value: " << pValue << endl;
     
 
 
