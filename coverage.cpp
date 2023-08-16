@@ -16,7 +16,7 @@ g++ coverage.cpp -o coverage -I "C:/dev/vcpkg/installed/x64-windows/include"
 
 const int REPEATROUNDS = 4096;    //2^12
 const int SETSIZE = 4096;
-const int BYTES = 8;
+const int BYTES = 8;        //input bytes
 const int DF = 4;       //degrees of freedom
 int expected[5] = { 816, 839, 810, 832, 799 };
 
