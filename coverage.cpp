@@ -36,7 +36,7 @@ void randomBytes(unsigned char* bytes, int n) {
 	}
 }
 
-void calculate_set(unsigned char* input, int len, int* range)
+void calculate_set(unsigned char* input, int len, int* range, unsigned char* ad, int adlen, unsigned char* tag)
 {
     unsigned char *output = new unsigned char[len];
     unsigned char key[KEYBYTES];
@@ -94,9 +94,9 @@ float coverage_test(unsigned char* ad, int adlen, unsigned char* tag) {
     float probabilities[REPEATROUNDS] = {0};
     float pValue, chi = 0.0f;
 
-    for(int i = 0; i < SETSIZE; i++){
+    for(int i = 0; i < REPEATROUNDS; i++){
         randomBytes(input, BYTES);
-        calculate_set(input, BYTES, range);
+        calculate_set(input, BYTES, range, ad, adlen, tag);
         
         for(int j = 0; j < 5; j++){
             probabilities[i] += powf(range[j] - expected[j], 2) / expected[j];
@@ -106,7 +106,7 @@ float coverage_test(unsigned char* ad, int adlen, unsigned char* tag) {
         chi += probabilities[i];
     }
 
-    chi /= SETSIZE;
+    chi /= REPEATROUNDS;
     pValue = boost::math::cdf(complement(boost::math::chi_squared_distribution<float>(DF), chi));
 
     return pValue;
