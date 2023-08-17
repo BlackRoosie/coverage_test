@@ -36,12 +36,15 @@ void randomBytes(unsigned char* bytes, int n) {
 	}
 }
 
-void calculate_set(unsigned char* input, int len, int* range, unsigned char* ad, int adlen, unsigned char* tag)
+// void calculate_set(unsigned char* input, int len, int* range, unsigned char* ad, int adlen, unsigned char* tag)
+int calculate_set(unsigned char* input, int len, unsigned char* ad, int adlen, unsigned char* tag)
 {
     unsigned char *output = new unsigned char[len];
     unsigned char key[KEYBYTES];
     unsigned char nonce[NONCEBYTES];
-    int resno;      //result number
+    bool valuesCounter[SETSIZE] = {false};  //to counting number of different values
+    int outNumber;      //output as a number
+    int differentValues = 0;
 
     randomBytes(key, KEYBYTES);
 
@@ -63,18 +66,13 @@ void calculate_set(unsigned char* input, int len, int* range, unsigned char* ad,
         //encryption algorithm e.g. encryption(key, nonce, ad, adlen, input, msglen, output, tag);
 
         output[len-2] &= 0x0f; 
-        resno = ((int)output[len-2] * 256 + (int)output[len-1]);
+        outNumber = ((int)output[len-2] * 256 + (int)output[len-1]);
 
-        if(resno < 2572)
-            range[0]++;
-        else if(resno < 2584)
-            range[1]++;
-        else if(resno < 2594)
-            range[2]++;
-        else if(resno < 2606)
-            range[3]++;
-        else 
-            range[4]++;
+        if(valuesCounter[outNumber + 1] == false){
+            valuesCounter[outNumber + 1] = true;
+            differentValues++;
+        }
+            
     }
 
     //for this set pValue = 0,27623 
@@ -85,28 +83,46 @@ void calculate_set(unsigned char* input, int len, int* range, unsigned char* ad,
     // range[4] = 835;
 
     delete[] output;
+
+    return differentValues;
 }
 
 float coverage_test(unsigned char* ad, int adlen, unsigned char* tag) {
 
     uint8_t input[BYTES];
     int range[5] = {0, 0, 0, 0, 0};
-    float probabilities[REPEATROUNDS] = {0};
+    // float probabilities[REPEATROUNDS] = {0};
+    int value;
     float pValue, chi = 0.0f;
 
     for(int i = 0; i < REPEATROUNDS; i++){
         randomBytes(input, BYTES);
-        calculate_set(input, BYTES, range, ad, adlen, tag);
-        
-        for(int j = 0; j < 5; j++){
-            probabilities[i] += powf(range[j] - expected[j], 2) / expected[j];
-            range[j] = 0;
-        }
+        value = calculate_set(input, BYTES, ad, adlen, tag);
 
-        chi += probabilities[i];
+        if(value < 2573)
+            range[0]++;
+        else if(value < 2585)
+            range[1]++;
+        else if(value < 2595)
+            range[2]++;
+        else if(value < 2607)
+            range[3]++;
+        else 
+            range[4]++;
+        
     }
 
-    chi /= REPEATROUNDS;
+    range[0] = 787;
+    range[1] = 861;
+    range[2] = 772;
+    range[3] = 841;
+    range[4] = 835;
+
+    for(int j = 0; j < 5; j++){
+        chi += powf(range[j] - expected[j], 2) / expected[j];
+        range[j] = 0;
+    }
+
     pValue = boost::math::cdf(complement(boost::math::chi_squared_distribution<float>(DF), chi));
 
     return pValue;
